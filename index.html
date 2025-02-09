@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Meme Coin Mood Wall</title>
+  <!-- External CSS Link (if needed) -->
+  <!-- <link rel="stylesheet" href="moodwall.css"> -->
+  
   <style>
     :root {
       --background-color: #1a1a1a;
@@ -12,7 +15,7 @@
       --bubble-glow: rgba(255, 255, 255, 0.3);
       --bubble-text-color: black;
     }
-    
+
     body {
       font-family: Arial, sans-serif;
       background-color: var(--background-color);
@@ -20,7 +23,7 @@
       margin: 0;
       padding: 0;
     }
-    
+
     header {
       display: flex;
       justify-content: center;
@@ -29,7 +32,7 @@
       padding: 20px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
     }
-    
+
     .toggle-button {
       cursor: pointer;
       padding: 10px 15px;
@@ -41,11 +44,11 @@
       position: absolute;
       right: 20px;
     }
-    
+
     .toggle-button:hover {
       background-color: #45a049;
     }
-    
+
     nav {
       display: flex;
       justify-content: center;
@@ -53,7 +56,7 @@
       background-color: #333;
       padding: 10px;
     }
-    
+
     .nav-item {
       background-color: #4caf50;
       color: white;
@@ -62,24 +65,24 @@
       cursor: pointer;
       transition: background-color 0.3s ease, transform 0.2s ease;
     }
-    
+
     .nav-item:hover,
     .nav-item.active {
       background-color: #45a049;
       transform: scale(1.1);
     }
-    
+
     .container {
       max-width: 800px;
       margin: 20px auto;
       text-align: center;
     }
-    
+
     .question-text {
       font-size: 24px;
       margin-bottom: 20px;
     }
-    
+
     #user-answer {
       padding: 10px;
       width: 60%;
@@ -90,7 +93,7 @@
                   inset -2px -2px 5px rgba(255, 255, 255, 0.1);
       margin-bottom: 10px;
     }
-    
+
     button {
       padding: 10px 20px;
       background-color: #4caf50;
@@ -101,11 +104,11 @@
       border-radius: 10px;
       transition: background-color 0.3s ease;
     }
-    
+
     button:hover {
       background-color: #45a049;
     }
-    
+
     .bubbles-container {
       display: flex;
       justify-content: center;
@@ -114,7 +117,7 @@
       margin-top: 20px;
       padding: 10px;
     }
-    
+
     .bubble {
       background-color: var(--bubble-color);
       border-radius: 50%;
