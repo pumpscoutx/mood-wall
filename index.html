@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shared Meme Coin Mood Wall</title>
-  <!-- External CSS Link (if needed) -->
+  <title>Meme Coin Mood Wall</title>
+    <!-- External CSS Link (if needed) -->
   <!-- <link rel="stylesheet" href="moodwall.css"> -->
-  
   <style>
     :root {
       --background-color: #1a1a1a;
@@ -153,20 +152,21 @@
   </div>
 
   <script>
-    // JSONBin.io configuration (replace with your own API key and bin ID)
-    const API_KEY = '$2b$10$YourApiKeyHere';
-    const BIN_ID = 'your-bin-id-here';
+    // JSONBin.io configuration (REPLACE THESE WITH YOUR OWN VALUES)
+    const API_KEY = '$2b$10$YOUR_API_KEY_HERE';
+    const BIN_ID = 'YOUR_BIN_ID_HERE';
     const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
-    const questions = [
-      { id: 0, text: "How's the trenches today?" },
-      { id: 1, text: "What's the next 100x?" },
-      { id: 2, text: "What's your meme coin mood today?" }
-    ];
+    let globalData = {
+      questions: [
+        { id: 0, text: "How's the trenches today?", moods: {} },
+        { id: 1, text: "What's the next 100x?", moods: {} },
+        { id: 2, text: "What's your meme coin mood today?", moods: {} }
+      ]
+    };
 
     let currentQuestionIndex = 0;
     let isNightMode = true;
-    let globalData = {};
 
     async function fetchData() {
       try {
@@ -174,11 +174,23 @@
           headers: { 'X-Master-Key': API_KEY }
         });
         const data = await response.json();
-        globalData = data.record || { questions };
-        displayMoodWall();
+        if (data.record) globalData = data.record;
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.log('Using default data due to API error:', error);
       }
+      
+      // Initialize questions if not present
+      if (!globalData.questions) {
+        globalData.questions = [
+          { id: 0, text: "How's the trenches today?", moods: {} },
+          { id: 1, text: "What's the next 100x?", moods: {} },
+          { id: 2, text: "What's your meme coin mood today?", moods: {} }
+        ];
+      }
+      
+      populateNav();
+      updateMoodPage();
+      displayMoodWall();
     }
 
     async function saveData() {
@@ -243,7 +255,8 @@
     function populateNav() {
       const nav = document.getElementById('questionNav');
       nav.innerHTML = '';
-      questions.forEach((question, index) => {
+      
+      globalData.questions.forEach((question, index) => {
         const navItem = document.createElement('div');
         navItem.classList.add('nav-item');
         if (index === currentQuestionIndex) navItem.classList.add('active');
@@ -267,8 +280,8 @@
     }
 
     function updateMoodPage() {
-      document.getElementById('currentQuestionText').textContent = 
-        globalData.questions[currentQuestionIndex].text;
+      const questionText = globalData.questions[currentQuestionIndex].text;
+      document.getElementById('currentQuestionText').textContent = questionText;
     }
 
     function toggleTheme() {
@@ -293,8 +306,6 @@
     (async () => {
       await fetchData();
       setInterval(fetchData, 5000); // Refresh data every 5 seconds
-      populateNav();
-      updateMoodPage();
       document.getElementById('user-answer').focus();
     })();
   </script>
