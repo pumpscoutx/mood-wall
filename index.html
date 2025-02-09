@@ -6,7 +6,8 @@
   <title>Meme Coin Mood Wall</title>
   <!-- External CSS Link (if needed) -->
   <!-- <link rel="stylesheet" href="moodwall.css"> -->
-  
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <style>
     :root {
       --background-color: #1a1a1a;
@@ -15,7 +16,7 @@
       --bubble-glow: rgba(255, 255, 255, 0.3);
       --bubble-text-color: black;
     }
-
+    
     body {
       font-family: Arial, sans-serif;
       background-color: var(--background-color);
@@ -23,7 +24,7 @@
       margin: 0;
       padding: 0;
     }
-
+    
     header {
       display: flex;
       justify-content: center;
@@ -32,7 +33,7 @@
       padding: 20px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
     }
-
+    
     .toggle-button {
       cursor: pointer;
       padding: 10px 15px;
@@ -44,11 +45,11 @@
       position: absolute;
       right: 20px;
     }
-
+    
     .toggle-button:hover {
       background-color: #45a049;
     }
-
+    
     nav {
       display: flex;
       justify-content: center;
@@ -56,7 +57,7 @@
       background-color: #333;
       padding: 10px;
     }
-
+    
     .nav-item {
       background-color: #4caf50;
       color: white;
@@ -65,24 +66,24 @@
       cursor: pointer;
       transition: background-color 0.3s ease, transform 0.2s ease;
     }
-
+    
     .nav-item:hover,
     .nav-item.active {
       background-color: #45a049;
       transform: scale(1.1);
     }
-
+    
     .container {
       max-width: 800px;
       margin: 20px auto;
       text-align: center;
     }
-
+    
     .question-text {
       font-size: 24px;
       margin-bottom: 20px;
     }
-
+    
     #user-answer {
       padding: 10px;
       width: 60%;
@@ -93,7 +94,7 @@
                   inset -2px -2px 5px rgba(255, 255, 255, 0.1);
       margin-bottom: 10px;
     }
-
+    
     button {
       padding: 10px 20px;
       background-color: #4caf50;
@@ -104,11 +105,11 @@
       border-radius: 10px;
       transition: background-color 0.3s ease;
     }
-
+    
     button:hover {
       background-color: #45a049;
     }
-
+    
     .bubbles-container {
       display: flex;
       justify-content: center;
@@ -117,7 +118,7 @@
       margin-top: 20px;
       padding: 10px;
     }
-
+    
     .bubble {
       background-color: var(--bubble-color);
       border-radius: 50%;
@@ -151,16 +152,35 @@
       <div class="bubbles-container" id="mood-bubbles"></div>
     </div>
   </div>
-  
+
   <script>
+    // Firebase configuration (replace with your own)
+    const firebaseConfig = {
+      apiKey: "AIzaSyABC123XYZ456DEF789ghiJKL0MNOPQRSTUV",
+      authDomain: "your-project-id.firebaseapp.com",
+      projectId: "your-project-id",
+      storageBucket: "your-project-id.appspot.com",
+      messagingSenderId: "123456789012",
+      appId: "1:123456789012:web:abc123def456ghi789jkl"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     const questions = [
-      { id: 0, text: "How's the trenches today?", moods: {} },
-      { id: 1, text: "What's the next 100x?", moods: {} },
-      { id: 2, text: "What's your meme coin mood today?", moods: {} }
+      { id: 0, text: "How's the trenches today?", ref: null, moods: {} },
+      { id: 1, text: "What's the next 100x?", ref: null, moods: {} },
+      { id: 2, text: "What's your meme coin mood today?", ref: null, moods: {} }
     ];
-    
+
     let currentQuestionIndex = 0;
     let isNightMode = true;
+
+    // Initialize Firestore references
+    questions.forEach(question => {
+      question.ref = db.collection('questions').doc(`question_${question.id}`);
+    });
 
     function handleKeyPress(e) {
       if (e.key === 'Enter') {
@@ -168,21 +188,29 @@
       }
     }
 
-    function loadSavedData() {
-      questions.forEach(question => {
-        const savedData = localStorage.getItem(`moodWall_${question.id}`);
-        if (savedData) {
-          question.moods = JSON.parse(savedData);
-        }
-      });
+    async function loadSavedData() {
+      const currentQuestion = questions[currentQuestionIndex];
+      const doc = await currentQuestion.ref.get();
+      if (doc.exists) {
+        currentQuestion.moods = doc.data().moods || {};
+      }
+      displayMoodWall();
     }
 
-    function saveCurrentData() {
+    async function saveCurrentData() {
       const currentQuestion = questions[currentQuestionIndex];
-      localStorage.setItem(
-        `moodWall_${currentQuestion.id}`,
-        JSON.stringify(currentQuestion.moods)
-      );
+      await currentQuestion.ref.set({
+        moods: currentQuestion.moods
+      }, { merge: true });
+    }
+
+    function setupRealtimeUpdates() {
+      questions[currentQuestionIndex].ref.onSnapshot((doc) => {
+        if (doc.exists) {
+          questions[currentQuestionIndex].moods = doc.data().moods || {};
+          displayMoodWall();
+        }
+      });
     }
 
     function populateNav() {
@@ -198,9 +226,11 @@
       });
     }
 
-    function switchQuestion(index) {
+    async function switchQuestion(index) {
       currentQuestionIndex = index;
       updateActiveNav();
+      await loadSavedData();
+      setupRealtimeUpdates();
       updateMoodPage();
     }
 
@@ -213,17 +243,17 @@
     function updateMoodPage() {
       document.getElementById('currentQuestionText').textContent = 
         questions[currentQuestionIndex].text;
-      displayMoodWall();
     }
 
-    function submitAnswer() {
+    async function submitAnswer() {
       const input = document.getElementById('user-answer');
       const answer = input.value.trim();
       if (answer) {
-        const moods = questions[currentQuestionIndex].moods;
-        moods[answer] = (moods[answer] || 0) + 1;
-        saveCurrentData();
-        displayMoodWall();
+        const currentQuestion = questions[currentQuestionIndex];
+        const count = (currentQuestion.moods[answer] || 0) + 1;
+        currentQuestion.moods[answer] = count;
+        
+        await saveCurrentData();
         input.value = '';
         input.focus();
       }
@@ -269,10 +299,14 @@
       document.documentElement.style.setProperty('--bubble-text-color', 'black');
     }
 
-    loadSavedData();
-    populateNav();
-    updateMoodPage();
-    document.getElementById('user-answer').focus();
+    // Initialize application
+    (async () => {
+      await loadSavedData();
+      populateNav();
+      setupRealtimeUpdates();
+      updateMoodPage();
+      document.getElementById('user-answer').focus();
+    })();
   </script>
 </body>
 </html>
