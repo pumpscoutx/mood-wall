@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Meme Coin Mood Wall</title>
+  <title>Shared Meme Coin Mood Wall</title>
   <!-- External CSS Link (if needed) -->
   <!-- <link rel="stylesheet" href="moodwall.css"> -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  
   <style>
     :root {
       --background-color: #1a1a1a;
@@ -154,63 +153,91 @@
   </div>
 
   <script>
-    // Firebase configuration (replace with your own)
-    const firebaseConfig = {
-      apiKey: "AIzaSyABC123XYZ456DEF789ghiJKL0MNOPQRSTUV",
-      authDomain: "your-project-id.firebaseapp.com",
-      projectId: "your-project-id",
-      storageBucket: "your-project-id.appspot.com",
-      messagingSenderId: "123456789012",
-      appId: "1:123456789012:web:abc123def456ghi789jkl"
-    };
-
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    // JSONBin.io configuration (replace with your own API key and bin ID)
+    const API_KEY = '$2b$10$YourApiKeyHere';
+    const BIN_ID = 'your-bin-id-here';
+    const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
     const questions = [
-      { id: 0, text: "How's the trenches today?", ref: null, moods: {} },
-      { id: 1, text: "What's the next 100x?", ref: null, moods: {} },
-      { id: 2, text: "What's your meme coin mood today?", ref: null, moods: {} }
+      { id: 0, text: "How's the trenches today?" },
+      { id: 1, text: "What's the next 100x?" },
+      { id: 2, text: "What's your meme coin mood today?" }
     ];
 
     let currentQuestionIndex = 0;
     let isNightMode = true;
+    let globalData = {};
 
-    // Initialize Firestore references
-    questions.forEach(question => {
-      question.ref = db.collection('questions').doc(`question_${question.id}`);
-    });
+    async function fetchData() {
+      try {
+        const response = await fetch(API_URL, {
+          headers: { 'X-Master-Key': API_KEY }
+        });
+        const data = await response.json();
+        globalData = data.record || { questions };
+        displayMoodWall();
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    }
+
+    async function saveData() {
+      try {
+        await fetch(API_URL, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': API_KEY
+          },
+          body: JSON.stringify(globalData)
+        });
+      } catch (error) {
+        console.error('Error saving data:', error);
+      }
+    }
 
     function handleKeyPress(e) {
-      if (e.key === 'Enter') {
-        submitAnswer();
+      if (e.key === 'Enter') submitAnswer();
+    }
+
+    async function submitAnswer() {
+      const input = document.getElementById('user-answer');
+      const answer = input.value.trim();
+      
+      if (answer) {
+        const currentQuestion = globalData.questions[currentQuestionIndex];
+        
+        if (!currentQuestion.moods) currentQuestion.moods = {};
+        currentQuestion.moods[answer] = (currentQuestion.moods[answer] || 0) + 1;
+        
+        await saveData();
+        input.value = '';
+        displayMoodWall();
       }
     }
 
-    async function loadSavedData() {
-      const currentQuestion = questions[currentQuestionIndex];
-      const doc = await currentQuestion.ref.get();
-      if (doc.exists) {
-        currentQuestion.moods = doc.data().moods || {};
+    function displayMoodWall() {
+      const container = document.getElementById('mood-bubbles');
+      container.innerHTML = '';
+      
+      const currentQuestion = globalData.questions[currentQuestionIndex];
+      if (!currentQuestion.moods) return;
+
+      for (const [mood, count] of Object.entries(currentQuestion.moods)) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        
+        const baseSize = 50;
+        const sizeIncrement = 15;
+        const fontSize = 14 + count * 2;
+        
+        bubble.style.width = `${baseSize + count * sizeIncrement}px`;
+        bubble.style.height = bubble.style.width;
+        bubble.style.fontSize = `${fontSize}px`;
+        bubble.textContent = mood;
+        
+        container.appendChild(bubble);
       }
-      displayMoodWall();
-    }
-
-    async function saveCurrentData() {
-      const currentQuestion = questions[currentQuestionIndex];
-      await currentQuestion.ref.set({
-        moods: currentQuestion.moods
-      }, { merge: true });
-    }
-
-    function setupRealtimeUpdates() {
-      questions[currentQuestionIndex].ref.onSnapshot((doc) => {
-        if (doc.exists) {
-          questions[currentQuestionIndex].moods = doc.data().moods || {};
-          displayMoodWall();
-        }
-      });
     }
 
     function populateNav() {
@@ -226,12 +253,11 @@
       });
     }
 
-    async function switchQuestion(index) {
+    function switchQuestion(index) {
       currentQuestionIndex = index;
       updateActiveNav();
-      await loadSavedData();
-      setupRealtimeUpdates();
       updateMoodPage();
+      displayMoodWall();
     }
 
     function updateActiveNav() {
@@ -242,43 +268,7 @@
 
     function updateMoodPage() {
       document.getElementById('currentQuestionText').textContent = 
-        questions[currentQuestionIndex].text;
-    }
-
-    async function submitAnswer() {
-      const input = document.getElementById('user-answer');
-      const answer = input.value.trim();
-      if (answer) {
-        const currentQuestion = questions[currentQuestionIndex];
-        const count = (currentQuestion.moods[answer] || 0) + 1;
-        currentQuestion.moods[answer] = count;
-        
-        await saveCurrentData();
-        input.value = '';
-        input.focus();
-      }
-    }
-
-    function displayMoodWall() {
-      const container = document.getElementById('mood-bubbles');
-      container.innerHTML = '';
-      const moods = questions[currentQuestionIndex].moods;
-      
-      for (const [mood, count] of Object.entries(moods)) {
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        
-        const baseSize = 50;
-        const sizeIncrement = 15;
-        const fontSize = 14 + count * 2;
-        
-        bubble.style.width = `${baseSize + count * sizeIncrement}px`;
-        bubble.style.height = bubble.style.width;
-        bubble.style.fontSize = `${fontSize}px`;
-        bubble.textContent = mood;
-        
-        container.appendChild(bubble);
-      }
+        globalData.questions[currentQuestionIndex].text;
     }
 
     function toggleTheme() {
@@ -301,9 +291,9 @@
 
     // Initialize application
     (async () => {
-      await loadSavedData();
+      await fetchData();
+      setInterval(fetchData, 5000); // Refresh data every 5 seconds
       populateNav();
-      setupRealtimeUpdates();
       updateMoodPage();
       document.getElementById('user-answer').focus();
     })();
