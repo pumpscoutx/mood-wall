@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meme Coin Mood Wall</title>
+  <style>
+    :root {
+      --background-color: #1a1a1a;
+      --text-color: white;
+      --bubble-color: #e0e0e0;
+      --bubble-glow: rgba(255, 255, 255, 0.3);
+      --bubble-text-color: black;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+    }
+    
+    header {
+      display: flex;
+      justify-content: center;
+      position: relative;
+      background-color: #282c34;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    }
+    
+    .toggle-button {
+      cursor: pointer;
+      padding: 10px 15px;
+      background-color: #4caf50;
+      color: white;
+      border-radius: 20px;
+      font-size: 14px;
+      transition: background-color 0.3s ease;
+      position: absolute;
+      right: 20px;
+    }
+    
+    .toggle-button:hover {
+      background-color: #45a049;
+    }
+    
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      background-color: #333;
+      padding: 10px;
+    }
+    
+    .nav-item {
+      background-color: #4caf50;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    
+    .nav-item:hover,
+    .nav-item.active {
+      background-color: #45a049;
+      transform: scale(1.1);
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      text-align: center;
+    }
+    
+    .question-text {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    
+    #user-answer {
+      padding: 10px;
+      width: 60%;
+      font-size: 16px;
+      border-radius: 10px;
+      border: none;
+      box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.2),
+                  inset -2px -2px 5px rgba(255, 255, 255, 0.1);
+      margin-bottom: 10px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 10px;
+      transition: background-color 0.3s ease;
+    }
+    
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    .bubbles-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 20px;
+      padding: 10px;
+    }
+    
+    .bubble {
+      background-color: var(--bubble-color);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bubble-text-color);
+      font-weight: bold;
+      box-shadow: 0 4px 15px var(--bubble-glow), 0 0 10px var(--bubble-glow);
+      transition: all 0.3s ease;
+      white-space: normal;
+      word-wrap: break-word;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Meme Coin Mood Wall 🌕✨</h1>
+    <div class="toggle-button" onclick="toggleTheme()">Switch to Day Mode</div>
+  </header>
+  
+  <nav id="questionNav"></nav>
+  
+  <div class="container">
+    <div class="mood-page">
+      <div class="question-text" id="currentQuestionText"></div>
+      <input type="text" id="user-answer" placeholder="Enter your response..." 
+             onkeypress="handleKeyPress(event)" />
+      <button onclick="submitAnswer()">Submit</button>
+      <div class="bubbles-container" id="mood-bubbles"></div>
+    </div>
+  </div>
+  
+  <script>
+    const questions = [
+      { id: 0, text: "How's the trenches today?", moods: {} },
+      { id: 1, text: "What's the next 100x?", moods: {} },
+      { id: 2, text: "What's your meme coin mood today?", moods: {} }
+    ];
+    
+    let currentQuestionIndex = 0;
+    let isNightMode = true;
+
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') {
+        submitAnswer();
+      }
+    }
+
+    function loadSavedData() {
+      questions.forEach(question => {
+        const savedData = localStorage.getItem(`moodWall_${question.id}`);
+        if (savedData) {
+          question.moods = JSON.parse(savedData);
+        }
+      });
+    }
+
+    function saveCurrentData() {
+      const currentQuestion = questions[currentQuestionIndex];
+      localStorage.setItem(
+        `moodWall_${currentQuestion.id}`,
+        JSON.stringify(currentQuestion.moods)
+      );
+    }
+
+    function populateNav() {
+      const nav = document.getElementById('questionNav');
+      nav.innerHTML = '';
+      questions.forEach((question, index) => {
+        const navItem = document.createElement('div');
+        navItem.classList.add('nav-item');
+        if (index === currentQuestionIndex) navItem.classList.add('active');
+        navItem.textContent = question.text;
+        navItem.onclick = () => switchQuestion(index);
+        nav.appendChild(navItem);
+      });
+    }
+
+    function switchQuestion(index) {
+      currentQuestionIndex = index;
+      updateActiveNav();
+      updateMoodPage();
+    }
+
+    function updateActiveNav() {
+      document.querySelectorAll('.nav-item').forEach((item, index) => {
+        item.classList.toggle('active', index === currentQuestionIndex);
+      });
+    }
+
+    function updateMoodPage() {
+      document.getElementById('currentQuestionText').textContent = 
+        questions[currentQuestionIndex].text;
+      displayMoodWall();
+    }
+
+    function submitAnswer() {
+      const input = document.getElementById('user-answer');
+      const answer = input.value.trim();
+      if (answer) {
+        const moods = questions[currentQuestionIndex].moods;
+        moods[answer] = (moods[answer] || 0) + 1;
+        saveCurrentData();
+        displayMoodWall();
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    function displayMoodWall() {
+      const container = document.getElementById('mood-bubbles');
+      container.innerHTML = '';
+      const moods = questions[currentQuestionIndex].moods;
+      
+      for (const [mood, count] of Object.entries(moods)) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        
+        const baseSize = 50;
+        const sizeIncrement = 15;
+        const fontSize = 14 + count * 2;
+        
+        bubble.style.width = `${baseSize + count * sizeIncrement}px`;
+        bubble.style.height = bubble.style.width;
+        bubble.style.fontSize = `${fontSize}px`;
+        bubble.textContent = mood;
+        
+        container.appendChild(bubble);
+      }
+    }
+
+    function toggleTheme() {
+      isNightMode = !isNightMode;
+      if (isNightMode) {
+        document.documentElement.style.setProperty('--background-color', '#1a1a1a');
+        document.documentElement.style.setProperty('--text-color', 'white');
+        document.documentElement.style.setProperty('--bubble-color', '#e0e0e0');
+        document.documentElement.style.setProperty('--bubble-glow', 'rgba(255, 255, 255, 0.3)');
+        document.querySelector('.toggle-button').textContent = 'Switch to Day Mode';
+      } else {
+        document.documentElement.style.setProperty('--background-color', '#f7f7f7');
+        document.documentElement.style.setProperty('--text-color', 'black');
+        document.documentElement.style.setProperty('--bubble-color', '#ffffff');
+        document.documentElement.style.setProperty('--bubble-glow', 'rgba(0, 0, 0, 0.1)');
+        document.querySelector('.toggle-button').textContent = 'Switch to Night Mode';
+      }
+      document.documentElement.style.setProperty('--bubble-text-color', 'black');
+    }
+
+    loadSavedData();
+    populateNav();
+    updateMoodPage();
+    document.getElementById('user-answer').focus();
+  </script>
+</body>
+</html>
